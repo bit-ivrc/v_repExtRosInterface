@@ -25,10 +25,51 @@ link_directories("/opt/ros/indigo/lib")
 link_directories("/opt/ros/jade/lib")
 link_directories("/opt/ros/kinetic/lib")
 
+option(USE_ALL_MESSAGES "Include all ROS Messages from the current environment" OFF)
+
+if(USE_ALL_MESSAGES)
+  # Try to use all messages available
+  # Warn as this could mess up (e.g., a package has .msg files it does not generate headers for)
+  message(WARNING "Trying to use ALL available ROS Messages."
+          "This could result in a larger build than expected, or something could go wrong.")
+  execute_process(
+          COMMAND rosmsg list
+          OUTPUT_FILE ${CMAKE_BINARY_DIR}/generated/messages.txt)
+
+else(USE_ALL_MESSAGES)
+  # Use the shipped meta/messages.txt as a starting point
+  file(COPY ${CMAKE_SOURCE_DIR}/meta/messages.txt DESTINATION ${CMAKE_BINARY_DIR}/generated)
+
+  if(MESSAGE_PACKAGES)
+    # Get custom message list from the given MESSAGE_PACKAGES
+    foreach(pkg ${MESSAGE_PACKAGES})
+      execute_process(
+              COMMAND rosmsg package ${pkg}
+              OUTPUT_VARIABLE _rosmsg_output
+              ERROR_VARIABLE _rosmsg_error)
+      if(_rosmsg_error)
+        string(REPLACE "\n" "\n  "  _rosmsg_error ${_rosmsg_error})
+        message(SEND_ERROR "Error getting messages from \"${pkg}\", listed in MESSAGE_PACKAGES:\n"
+                           "${_rosmsg_error}")
+      else()
+        message(STATUS "Including all messages from ${pkg}")
+        FILE(APPEND ${CMAKE_BINARY_DIR}/generated/messages.txt ${_rosmsg_output})
+      endif()
+    endforeach()
+  else(MESSAGE_PACKAGES)
+    # Use no extra messages
+    message(WARNING "Since MESSAGE_PACKAGES is not set, not including any custom ROS Messages.\n"
+                    "To include custom messages specify the package names. For example:\n"
+                    "  catkin build  -DMESSAGE_PACKAGES=\"control_msgs;tf2_msgs\"")
+
+  endif(MESSAGE_PACKAGES)
+endif(USE_ALL_MESSAGES)
+
+
 add_custom_command(OUTPUT
     ${CMAKE_BINARY_DIR}/generated/adv.cpp ${CMAKE_BINARY_DIR}/generated/pub.cpp ${CMAKE_BINARY_DIR}/generated/ros_msg_io.cpp ${CMAKE_BINARY_DIR}/generated/ros_msg_io.h ${CMAKE_BINARY_DIR}/generated/ros_srv_io.cpp ${CMAKE_BINARY_DIR}/generated/ros_srv_io.h ${CMAKE_BINARY_DIR}/generated/srvcall.cpp ${CMAKE_BINARY_DIR}/generated/srvcli.cpp ${CMAKE_BINARY_DIR}/generated/srvsrv.cpp ${CMAKE_BINARY_DIR}/generated/sub.cpp
-    COMMAND python ${CMAKE_SOURCE_DIR}/tools/generate_ros_stuff.py ${CMAKE_SOURCE_DIR}/meta/messages.txt ${CMAKE_SOURCE_DIR}/meta/services.txt ${CMAKE_BINARY_DIR}/generated/
-    DEPENDS ${CMAKE_SOURCE_DIR}/meta/messages.txt ${CMAKE_SOURCE_DIR}/meta/services.txt ${CMAKE_SOURCE_DIR}/tools/generate_ros_stuff.py)
+    COMMAND python ${CMAKE_SOURCE_DIR}/tools/generate_ros_stuff.py  ${CMAKE_BINARY_DIR}/generated/messages.txt ${CMAKE_SOURCE_DIR}/meta/services.txt ${CMAKE_BINARY_DIR}/generated/
+    DEPENDS ${CMAKE_BINARY_DIR}/generated/messages.txt ${CMAKE_SOURCE_DIR}/meta/services.txt ${CMAKE_SOURCE_DIR}/tools/generate_ros_stuff.py)
 
 if((EXISTS ${CMAKE_SOURCE_DIR}/include/stubs.h) AND (EXISTS ${CMAKE_SOURCE_DIR}/src/stubs.cpp))
   MESSAGE(STATUS "*** Using the prebuilt stubs (stubs.h and stubs.cpp) ***")
