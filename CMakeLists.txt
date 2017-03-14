@@ -1,18 +1,15 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(vrep_ros_interface)
 
-set(catkin_deps roscpp rosmsg image_transport tf cv_bridge)
-list(APPEND catkin_deps ${MESSAGE_PACKAGES})
+set(catkin_deps roscpp image_transport tf cv_bridge)
 
-find_package(catkin REQUIRED ${catkin_deps})
+find_package(catkin REQUIRED rosmsg ${catkin_deps} ${MESSAGE_PACKAGES})
 
 if(NOT DEFINED ENV{VREP_ROOT})
   message(FATAL_ERROR "Environment variable \$VREP_ROOT is not set. Please set it to point to the root directory of V-REP.")
 endif()
 
-catkin_package(
-   CATKIN_DEPENDS roscpp rosconsole cv_bridge image_transport tf brics_actuator roslib actionlib_msgs control_msgs diagnostic_msgs geometry_msgs map_msgs nav_msgs pcl_msgs sensor_msgs shape_msgs std_msgs tf2_geometry_msgs tf2_msgs tf2_sensor_msgs trajectory_msgs visualization_msgs
-   DEPENDS roscpp rosconsole cv_bridge image_transport tf brics_actuator roslib actionlib_msgs control_msgs diagnostic_msgs geometry_msgs map_msgs nav_msgs pcl_msgs sensor_msgs shape_msgs std_msgs tf2_geometry_msgs tf2_msgs tf2_sensor_msgs trajectory_msgs visualization_msgs)
+catkin_package(CATKIN_DEPENDS ${catkin_deps})
 
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/generated)
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/doc)
