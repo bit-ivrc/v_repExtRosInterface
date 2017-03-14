@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(vrep_ros_interface)
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp rosmsg image_transport tf cv_bridge
-)
+set(catkin_deps roscpp rosmsg image_transport tf cv_bridge)
+list(APPEND catkin_deps ${MESSAGE_PACKAGES})
+
+find_package(catkin REQUIRED ${catkin_deps})
 
 if(NOT DEFINED ENV{VREP_ROOT})
   message(FATAL_ERROR "Environment variable \$VREP_ROOT is not set. Please set it to point to the root directory of V-REP.")
